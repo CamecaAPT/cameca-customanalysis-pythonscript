@@ -39,7 +39,7 @@ internal class AnacondaDistribution : IPyDistribution
 		}
 		catch (Exception ex)
 		{
-			_logger.LogWarning(ex, "Exception initializing Anaconda Python distribution");
+			_logger.LogWarning(ex, AnacondaResources.LogWarningGeneralInitializeException);
 			return false;
 		}
 	}

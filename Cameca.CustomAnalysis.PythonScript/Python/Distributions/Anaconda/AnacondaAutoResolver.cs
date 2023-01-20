@@ -65,7 +65,7 @@ internal class AnacondaAutoResolver
 		catch (Exception ex)
 		{
 			// This is only a convenience. If for any reason this fails, ignore and continue
-			_logger.LogWarning(ex, "Exception resolving Anaconda install path from Registry");
+			_logger.LogWarning(ex, AnacondaResources.LogWarningGeneralCheckRegistryException);
 			return null;
 		}
 	}
