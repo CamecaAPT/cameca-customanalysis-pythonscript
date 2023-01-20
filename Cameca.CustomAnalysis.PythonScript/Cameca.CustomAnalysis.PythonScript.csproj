@@ -45,6 +45,10 @@
 		<None Include="..\LICENSE" Pack="True" PackagePath="$(PackageLicenseFile)" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Resource Include="Images\python-16x16.png" />
+	</ItemGroup>
+
 	<PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
 		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 		<Deterministic>true</Deterministic>
