@@ -65,6 +65,12 @@
 	  </EmbeddedResource>
 	</ItemGroup>
 
+	<ItemGroup>
+		<None Update="PythonPackages\**\*.py">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
 	<PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
 		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 		<Deterministic>true</Deterministic>
