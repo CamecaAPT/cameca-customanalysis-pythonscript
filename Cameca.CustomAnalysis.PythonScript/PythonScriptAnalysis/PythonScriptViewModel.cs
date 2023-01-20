@@ -1,6 +1,6 @@
 ﻿using Cameca.CustomAnalysis.Utilities;
 
-namespace Cameca.CustomAnalysis.PythonScript;
+namespace Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
 
 internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 {

@@ -2,7 +2,7 @@
 using Cameca.CustomAnalysis.Utilities;
 using Prism.Events;
 
-namespace Cameca.CustomAnalysis.PythonScript;
+namespace Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
 
 internal class PythonScriptNodeMenuFactory : AnalysisMenuFactoryBase
 {

@@ -1,7 +1,7 @@
 ﻿using Cameca.CustomAnalysis.Interface;
 using Cameca.CustomAnalysis.Utilities;
 
-namespace Cameca.CustomAnalysis.PythonScript;
+namespace Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
 
 [DefaultView(PythonScriptViewModel.UniqueId, typeof(PythonScriptViewModel))]
 internal class PythonScriptNode : StandardAnalysisNodeBase

@@ -1,4 +1,4 @@
-﻿namespace Cameca.CustomAnalysis.PythonScript;
+﻿namespace Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
 
 /// <summary>
 /// Interaction logic for PythonScriptView.xaml
