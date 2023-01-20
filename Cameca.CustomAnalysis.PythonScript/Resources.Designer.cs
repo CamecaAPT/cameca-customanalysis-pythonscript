@@ -59,5 +59,14 @@ namespace Cameca.CustomAnalysis.PythonScript {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Python Script.
+        /// </summary>
+        internal static string PythonScriptDisplayName {
+            get {
+                return ResourceManager.GetString("PythonScriptDisplayName", resourceCulture);
+            }
+        }
     }
 }
