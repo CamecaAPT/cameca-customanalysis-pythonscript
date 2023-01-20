@@ -1,4 +1,5 @@
 ﻿using Cameca.CustomAnalysis.Interface;
+using Cameca.CustomAnalysis.PythonScript.Python;
 using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
 using Cameca.CustomAnalysis.Utilities;
 using Microsoft.Extensions.Logging;
@@ -16,7 +17,9 @@ public class PythonScriptModule : IModule
     public void RegisterTypes(IContainerRegistry containerRegistry)
     {
 	    containerRegistry.Register(typeof(ILogger<>), typeof(NullLogger<>));
-        containerRegistry.AddCustomAnalysisUtilities(options => options.UseStandardBaseClasses = true);
+	    containerRegistry.RegisterSingleton<PythonManager>();
+
+		containerRegistry.AddCustomAnalysisUtilities(options => options.UseStandardBaseClasses = true);
 
         containerRegistry.Register<object, PythonScriptNode>(PythonScriptNode.UniqueId);
         containerRegistry.RegisterInstance(PythonScriptNode.DisplayInfo, PythonScriptNode.UniqueId);
