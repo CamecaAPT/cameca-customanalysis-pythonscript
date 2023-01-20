@@ -1,6 +1,8 @@
 ﻿using Cameca.CustomAnalysis.Interface;
 using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
 using Cameca.CustomAnalysis.Utilities;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Prism.Ioc;
 using Prism.Modularity;
 
@@ -13,6 +15,7 @@ public class PythonScriptModule : IModule
 {
     public void RegisterTypes(IContainerRegistry containerRegistry)
     {
+	    containerRegistry.Register(typeof(ILogger<>), typeof(NullLogger<>));
         containerRegistry.AddCustomAnalysisUtilities(options => options.UseStandardBaseClasses = true);
 
         containerRegistry.Register<object, PythonScriptNode>(PythonScriptNode.UniqueId);
