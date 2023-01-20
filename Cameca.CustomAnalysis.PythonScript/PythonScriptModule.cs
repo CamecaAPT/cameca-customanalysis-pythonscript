@@ -1,5 +1,6 @@
 ﻿using Cameca.CustomAnalysis.Interface;
 using Cameca.CustomAnalysis.PythonScript.Python;
+using Cameca.CustomAnalysis.PythonScript.Python.Distributions.Anaconda;
 using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
 using Cameca.CustomAnalysis.Utilities;
 using Microsoft.Extensions.Logging;
@@ -18,6 +19,7 @@ public class PythonScriptModule : IModule
     {
 	    containerRegistry.Register(typeof(ILogger<>), typeof(NullLogger<>));
 	    containerRegistry.RegisterSingleton<PythonManager>();
+	    containerRegistry.RegisterAnacondaDistribution();
 
 		containerRegistry.AddCustomAnalysisUtilities(options => options.UseStandardBaseClasses = true);
 
