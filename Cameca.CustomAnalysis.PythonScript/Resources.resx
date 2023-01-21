@@ -101,4 +101,10 @@
 	<data name="PythonScriptDisplayName" xml:space="preserve">
 		<value>Python Script</value>
 	</data>
+	<data name="InvalidPythonIdentifierExceptionMessage" xml:space="preserve">
+		<value>"{0}" is not a valid Python identifier</value>
+	</data>
+	<data name="InvalidPythonIndentationExceptionMessage" xml:space="preserve">
+		<value>"{0}" is not a valid Python indentation</value>
+	</data>
 </root>

@@ -61,6 +61,24 @@ namespace Cameca.CustomAnalysis.PythonScript {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to &quot;{0}&quot; is not a valid Python identifier.
+        /// </summary>
+        public static string InvalidPythonIdentifierExceptionMessage {
+            get {
+                return ResourceManager.GetString("InvalidPythonIdentifierExceptionMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &quot;{0}&quot; is not a valid Python indentation.
+        /// </summary>
+        public static string InvalidPythonIndentationExceptionMessage {
+            get {
+                return ResourceManager.GetString("InvalidPythonIndentationExceptionMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Python Script.
         /// </summary>
         public static string PythonScriptDisplayName {
