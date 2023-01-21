@@ -123,4 +123,22 @@
   <data name="LogWarningGeneralInitializeException" xml:space="preserve">
     <value>Exception initializing Anaconda Python distribution</value>
   </data>
+  <data name="DownloadButtonLabel" xml:space="preserve">
+	  <value>Download</value>
+  </data>
+  <data name="CloseButtonLabel" xml:space="preserve">
+	  <value>Close</value>
+  </data>
+  <data name="AnacondaNotFoundDialogInfoHeader" xml:space="preserve">
+	  <value>No Anaconda Python interpreter could be located.</value>
+  </data>
+  <data name="AnacondaDownloadUrl" xml:space="preserve">
+	  <value>https://www.anaconda.com/</value>
+  </data>
+  <data name="AnacondaNotFoundDialogInfoLine1" xml:space="preserve">
+	  <value>Please download and install Anaconda to continue.</value>
+  </data>
+  <data name="AnacondaNotFoundDialogInfoLine2" xml:space="preserve">
+	  <value>Download link will open in your default browser.</value>
+  </data>
 </root>

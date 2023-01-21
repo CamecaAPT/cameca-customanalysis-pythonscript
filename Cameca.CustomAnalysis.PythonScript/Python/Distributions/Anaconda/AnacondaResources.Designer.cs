@@ -62,6 +62,60 @@ namespace Cameca.CustomAnalysis.PythonScript.Python.Distributions.Anaconda {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to https://www.anaconda.com/.
+        /// </summary>
+        public static string AnacondaDownloadUrl {
+            get {
+                return ResourceManager.GetString("AnacondaDownloadUrl", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No Anaconda Python interpreter could be located..
+        /// </summary>
+        public static string AnacondaNotFoundDialogInfoHeader {
+            get {
+                return ResourceManager.GetString("AnacondaNotFoundDialogInfoHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please download and install Anaconda to continue..
+        /// </summary>
+        public static string AnacondaNotFoundDialogInfoLine1 {
+            get {
+                return ResourceManager.GetString("AnacondaNotFoundDialogInfoLine1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Download link will open in your default browser..
+        /// </summary>
+        public static string AnacondaNotFoundDialogInfoLine2 {
+            get {
+                return ResourceManager.GetString("AnacondaNotFoundDialogInfoLine2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Close.
+        /// </summary>
+        public static string CloseButtonLabel {
+            get {
+                return ResourceManager.GetString("CloseButtonLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Download.
+        /// </summary>
+        public static string DownloadButtonLabel {
+            get {
+                return ResourceManager.GetString("DownloadButtonLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Exception resolving Anaconda install path from Registry.
         /// </summary>
         public static string LogWarningGeneralCheckRegistryException {

@@ -3,6 +3,9 @@ using Python.Runtime;
 using System;
 using System.IO;
 using System.Linq;
+using Prism.Services.Dialogs;
+using System.Diagnostics;
+using Cameca.CustomAnalysis.PythonScript.Python.Distributions.Anaconda.AnacondaNotFoundDialog;
 
 namespace Cameca.CustomAnalysis.PythonScript.Python.Distributions.Anaconda;
 
@@ -10,11 +13,13 @@ internal class AnacondaDistribution : IPyDistribution
 {
 	private readonly ILogger<AnacondaDistribution> _logger;
 	private readonly AnacondaAutoResolver _autoResolver;
+	private readonly IDialogService _dialogService;
 
-	public AnacondaDistribution(ILogger<AnacondaDistribution> logger, AnacondaAutoResolver autoResolver)
+	public AnacondaDistribution(ILogger<AnacondaDistribution> logger, AnacondaAutoResolver autoResolver, IDialogService dialogService)
 	{
 		_logger = logger;
 		_autoResolver = autoResolver;
+		_dialogService = dialogService;
 	}
 
 	/// <summary>
@@ -26,7 +31,7 @@ internal class AnacondaDistribution : IPyDistribution
 	{
 		if (_autoResolver.AutoLocateAnacondaPath() is not { } condaPath)
 		{
-			// TODO: Add prompt if Anaconda could not be found
+			ShowPromptForDownload();
 			return false;
 		}
 
@@ -77,6 +82,30 @@ internal class AnacondaDistribution : IPyDistribution
 		ApplyIntelMklFix();
 
 		return true;
+	}
+
+	private void ShowPromptForDownload()
+	{
+		var downloadUrl = AnacondaResources.AnacondaDownloadUrl;
+		_dialogService.ShowAnacondaNotFound(downloadUrl, result =>
+		{
+			if (result.Result == ButtonResult.OK)
+			{
+				LaunchDownloadUrl(downloadUrl);
+			}
+		});
+	}
+
+	/// <summary>
+	/// Execute download URL with ShellExecute to open download link in default browser
+	/// </summary>
+	/// <param name="downloadUrl"></param>
+	private static void LaunchDownloadUrl(string downloadUrl)
+	{
+		Process.Start(new ProcessStartInfo(downloadUrl)
+		{
+			UseShellExecute = true,
+		});
 	}
 
 	// TODO: Remove unsafe and undocumented workaround for mkl libraries though either AP Suite update or out of process Python
