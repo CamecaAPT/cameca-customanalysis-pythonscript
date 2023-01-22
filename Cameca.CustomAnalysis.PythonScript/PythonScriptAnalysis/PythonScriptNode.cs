@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 using Cameca.CustomAnalysis.Interface;
 using Cameca.CustomAnalysis.PythonScript.Images;
 using Cameca.CustomAnalysis.PythonScript.Python.DelegatedExecute;
+using Cameca.CustomAnalysis.PythonScript.Python.DelegatedExecute.Executors;
 using Cameca.CustomAnalysis.PythonScript.Python.DelegatedExecute.Executors.FunctionWrappedFlatScript;
+using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Adapters;
 using Cameca.CustomAnalysis.Utilities;
 
 namespace Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
@@ -19,6 +21,8 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 
 	private readonly PyExecutor _pyExecutor;
 	private readonly INodeInfoProvider _nodeInfoProvider;
+	private readonly IIonDisplayInfoProvider _ionDisplayInfoProvider;
+	private readonly IMassSpectrumRangeManagerProvider _rangeManagerProvider;
 	private INodeInfo? _nodeInfo;
 
 	public static INodeDisplayInfo DisplayInfo { get; } = new NodeDisplayInfo(Resources.PythonScriptDisplayName, ImagesContainer.Python16x16);
@@ -27,11 +31,18 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 
 	public string ScriptText { get; set; } = "";
 
-	public PythonScriptNode(PyExecutor pyExecutor, INodeInfoProvider nodeInfoProvider, IStandardAnalysisNodeBaseServices services)
+	public PythonScriptNode(
+		PyExecutor pyExecutor,
+		INodeInfoProvider nodeInfoProvider,
+		IIonDisplayInfoProvider ionDisplayInfoProvider,
+		IMassSpectrumRangeManagerProvider rangeManagerProvider,
+		IStandardAnalysisNodeBaseServices services)
         : base(services)
 	{
 		_pyExecutor = pyExecutor;
 		_nodeInfoProvider = nodeInfoProvider;
+		_ionDisplayInfoProvider = ionDisplayInfoProvider;
+		_rangeManagerProvider = rangeManagerProvider;
 	}
 
 	protected override void OnCreated(NodeCreatedEventArgs eventArgs)
@@ -71,7 +82,26 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	{
 		try
 		{
-			var functionWrapper = new FunctionWrapper(script);
+			if (await GetIonData(cancellationToken: token) is not { } ionData)
+			{
+				return;
+			}
+			var apsDataProvider = new ApsDataObjectProvider(
+				ionData,
+				new string[]
+				{
+					IonDataSectionName.Position,
+					IonDataSectionName.Mass,
+					IonDataSectionName.IonType,
+				},
+				_ionDisplayInfoProvider.Resolve(InstanceId),
+				_rangeManagerProvider.Resolve(InstanceId));
+			var functionWrapper = new FunctionWrapper(
+				script,
+				positionalArguments: new[]
+				{
+					new ParameterDefinition("aps", apsDataProvider),
+				});
 			var executable = new FunctionWrappedScriptExecutable(functionWrapper);
 			// This isn't the right solution as the exception handing should be isolated to the VM
 			// as the output is only guaranteed to be redirected there.
