@@ -201,11 +201,18 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 			new StdstreamRedirect(DispatchAddOutputItemPyCallback),
 			new MatplotlibRenderer(this, _pythonManager),
 		};
-		await Node.RunScript(
-			ScriptText,
-			MenuItems.Where(x => x.IsChecked).Select(x => x.Header).ToArray(),
-			middleware,
-			token);
+		try
+		{
+			await Node.RunScript(
+				ScriptText,
+				MenuItems.Where(x => x.IsChecked).Select(x => x.Header).ToArray(),
+				middleware,
+				token);
+		}
+		catch (PythonException)
+		{
+			// Expected when internal Python exception is raised
+		}
 	}
 
 	private void DispatchAddOutputItemPyCallback(object? value)

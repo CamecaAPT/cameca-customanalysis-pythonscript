@@ -40,7 +40,8 @@ internal class HandlePythonExceptionWrapper<T> : IPyExecutable where T : IPyExec
 				if (PyList.IsListType(value)) return type.Invoke(new PyList(value));
 				return type.Invoke(value);
 			}
+			// Rethrow so post-processing doesn't occur on Python exception
+			throw;
 		}
-		return PyObject.None;
 	}
 }
