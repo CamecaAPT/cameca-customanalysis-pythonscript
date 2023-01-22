@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -23,6 +25,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	private readonly INodeInfoProvider _nodeInfoProvider;
 	private readonly IIonDisplayInfoProvider _ionDisplayInfoProvider;
 	private readonly IMassSpectrumRangeManagerProvider _rangeManagerProvider;
+	private readonly IReconstructionSectionsProvider _reconstructionSectionsProvider;
 	private INodeInfo? _nodeInfo;
 
 	public static INodeDisplayInfo DisplayInfo { get; } = new NodeDisplayInfo(Resources.PythonScriptDisplayName, ImagesContainer.Python16x16);
@@ -36,6 +39,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 		INodeInfoProvider nodeInfoProvider,
 		IIonDisplayInfoProvider ionDisplayInfoProvider,
 		IMassSpectrumRangeManagerProvider rangeManagerProvider,
+		IReconstructionSectionsProvider reconstructionSectionsProvider,
 		IStandardAnalysisNodeBaseServices services)
         : base(services)
 	{
@@ -43,6 +47,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 		_nodeInfoProvider = nodeInfoProvider;
 		_ionDisplayInfoProvider = ionDisplayInfoProvider;
 		_rangeManagerProvider = rangeManagerProvider;
+		_reconstructionSectionsProvider = reconstructionSectionsProvider;
 	}
 
 	protected override void OnCreated(NodeCreatedEventArgs eventArgs)
@@ -54,6 +59,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 				var loadState = JsonSerializer.Deserialize<PythonScriptSaveState>(loadData);
 				UpdateTitle(loadState?.Title ?? DisplayInfo.Title);
 				ScriptText = loadState?.ScriptText ?? "";
+				SelectedSection = loadState?.Sections ?? Enumerable.Empty<string>().ToList();
 			}
 			catch (JsonException) { }
 			catch (NotSupportedException) { }
@@ -66,6 +72,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 		{
 			Title = _nodeInfo?.Title ?? "",
 			ScriptText = ScriptText,
+			Sections = SelectedSection,
 		});
 		return Encoding.UTF8.GetBytes(serializedState);
 	}
@@ -75,8 +82,44 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 		_nodeInfo = _nodeInfoProvider?.Resolve(InstanceId);
 	}
 
+	public static readonly string[] DefaultSections = new[]
+	{
+		IonDataSectionName.Position,
+		IonDataSectionName.Mass,
+		IonDataSectionName.IonType,
+	};
+
+	public List<string> SelectedSection = DefaultSections.ToList();
+
+	public IEnumerable<string> GetCurrentSections()
+	{
+		if (Services.IonDataProvider.Resolve(InstanceId)?.GetValidIonData() is { } ionData)
+		{
+			return ionData.Sections.Keys.Concat(SelectedSection).Distinct();
+		}
+		return SelectedSection;
+	}
+
+	public async Task<IEnumerable<string>> GetAvailableSections()
+	{
+		IEnumerable<string> sections = Enumerable.Empty<string>();
+		if (await GetIonData() is { } ionData)
+		{
+			sections = sections.Concat(ionData.Sections.Keys);
+		}
+		if (_reconstructionSectionsProvider.Resolve(InstanceId) is not { IsAddSectionAvailable: true } reconstructionSections)
+		{
+			return sections;
+		}
+
+		var availableSections = (await reconstructionSections.GetAvailableSections())
+			.Select(x => x.Name);
+		return sections.Concat(availableSections).Distinct();
+	}
+
 	public async Task RunScript(
 	    string script,
+		IEnumerable<string> sections,
 	    IEnumerable<IPyExecutorMiddleware> middleware,
 	    CancellationToken token)
 	{
@@ -86,14 +129,19 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 			{
 				return;
 			}
+			var sectionArray = sections.ToArray();
+			if (sectionArray.Any())
+			{
+				// Ensure we have the ion data available
+				if (!await ionData.EnsureSectionsAvailable(sectionArray, _reconstructionSectionsProvider.Resolve(InstanceId), cancellationToken: token))
+				{
+					// This should be unlikely. Could occur through copying analysis tree, recipes or favorites
+					throw new InvalidOperationException("One or more selected sections were unavailable");
+				}
+			}
 			var apsDataProvider = new ApsDataObjectProvider(
 				ionData,
-				new string[]
-				{
-					IonDataSectionName.Position,
-					IonDataSectionName.Mass,
-					IonDataSectionName.IonType,
-				},
+				sectionArray,
 				_ionDisplayInfoProvider.Resolve(InstanceId),
 				_rangeManagerProvider.Resolve(InstanceId));
 			var functionWrapper = new FunctionWrapper(

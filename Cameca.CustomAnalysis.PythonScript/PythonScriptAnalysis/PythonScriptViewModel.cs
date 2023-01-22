@@ -1,10 +1,14 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Cameca.CustomAnalysis.Interface;
 using Cameca.CustomAnalysis.PythonScript.Python.DelegatedExecute;
+using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Adapters;
 using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Output.StdStream;
 using Cameca.CustomAnalysis.Utilities;
 using CommunityToolkit.Mvvm.Input;
@@ -67,8 +71,38 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 		_getAvailableSectionsCommand = new AsyncRelayCommand(OnGetAvailableSections);
 		_scriptEditorKeyDownCommand = new RelayCommand<KeyEventArgs>(OnScriptEditorKeyDown);
 
+		MenuItems.CollectionChanged += MenuItemsOnCollectionChanged;
+
 		OutputTabs.Add(_outputViewModel);
 		SelectedOutputTab = _outputViewModel;
+	}
+
+	private void MenuItemsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+	{
+		foreach (var vm in e.NewItems?.OfType<MenuItemViewModel>() ?? Enumerable.Empty<MenuItemViewModel>())
+		{
+			vm.PropertyChanged += MenuItemViewModelOnPropertyChanged;
+		}
+	}
+
+	private void MenuItemViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (sender is not MenuItemViewModel menuItemViewModel || Node is null)
+		{
+			return;
+		}
+
+		if (e.PropertyName is nameof(MenuItemViewModel.IsChecked))
+		{
+			if (menuItemViewModel.IsChecked && !Node.SelectedSection.Contains(menuItemViewModel.Header))
+			{
+				Node.SelectedSection.Add(menuItemViewModel.Header);
+			}
+			else if (!menuItemViewModel.IsChecked && Node.SelectedSection.Contains(menuItemViewModel.Header))
+			{
+				Node.SelectedSection.Remove(menuItemViewModel.Header);
+			}
+		}
 	}
 
 	protected override void OnAdded(ViewModelAddedEventArgs eventArgs)
@@ -77,6 +111,16 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 
 		Title = Node?.Title ?? PythonScriptNode.DisplayInfo.Title;
 		ScriptText = Node?.ScriptText ?? "";
+
+		var selectedSection = new HashSet<string>(Node?.SelectedSection ?? Enumerable.Empty<string>());
+		foreach (var section in Node?.GetCurrentSections() ?? PythonScriptNode.DefaultSections)
+		{
+			MenuItems.Add(new MenuItemViewModel
+			{
+				Header = section,
+				IsChecked = selectedSection.Contains(section),
+			});
+		}
 	}
 
 	private void OnTitleChanged()
@@ -105,26 +149,39 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 		if (args is null) return;
 
 		if (args.Key == Key.Enter
-		    && args.KeyboardDevice.Modifiers == ModifierKeys.Control
-		    && !args.IsRepeat
-		    && _runScriptCommand.CanExecute(null))
+			&& args.KeyboardDevice.Modifiers == ModifierKeys.Control
+			&& !args.IsRepeat
+			&& _runScriptCommand.CanExecute(null))
 		{
 			_runScriptCommand.Execute(null);
 			args.Handled = true;
 		}
 
 		if (args.Key == Key.Pause
-		    && !args.IsRepeat
-		    && _cancelScriptCommand.CanExecute(null))
+			&& !args.IsRepeat
+			&& _cancelScriptCommand.CanExecute(null))
 		{
 			_cancelScriptCommand.Execute(null);
 			args.Handled = true;
 		}
 	}
 
-	private Task OnGetAvailableSections(CancellationToken token)
+	private async Task OnGetAvailableSections(CancellationToken token)
 	{
-		return Task.CompletedTask;
+		if (Node is null) return;
+		var availableSections = await Node.GetAvailableSections();
+		var current = new HashSet<string>(MenuItems.Select(x => x.Header));
+		foreach (var name in availableSections)
+		{
+			if (!current.Contains(name))
+			{
+				MenuItems.Add(new MenuItemViewModel
+				{
+					Header = name,
+					IsChecked = false,
+				});
+			}
+		}
 	}
 
 	private async Task OnRunScript(CancellationToken token)
@@ -138,7 +195,11 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 		{
 			new StdstreamRedirect(DispatchAddOutputItemPyCallback),
 		};
-		await Node.RunScript(ScriptText, middleware, token);
+		await Node.RunScript(
+			ScriptText,
+			MenuItems.Where(x => x.IsChecked).Select(x => x.Header).ToArray(),
+			middleware,
+			token);
 	}
 
 	private void DispatchAddOutputItemPyCallback(object? value)
