@@ -1,7 +1,9 @@
 ﻿using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Cameca.CustomAnalysis.PythonScript.Python.DelegatedExecute;
 using Cameca.CustomAnalysis.Utilities;
 using CommunityToolkit.Mvvm.Input;
 
@@ -68,8 +70,13 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 		return Task.CompletedTask;
 	}
 
-	private Task OnRunScript(CancellationToken token)
+	private async Task OnRunScript(CancellationToken token)
 	{
-		return Task.CompletedTask;
+		if (Node is null)
+		{
+			return;
+		}
+		var middleware = Enumerable.Empty<IPyExecutorMiddleware>();
+		await Node.RunScript(ScriptText, middleware, token);
 	}
 }
