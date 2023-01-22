@@ -69,9 +69,16 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	    IEnumerable<IPyExecutorMiddleware> middleware,
 	    CancellationToken token)
 	{
-		var functionWrapper = new FunctionWrapper(script);
-		var executable = new FunctionWrappedScriptExecutable(functionWrapper);
-		await _pyExecutor.Execute(executable, middleware, token);
+		try
+		{
+			var functionWrapper = new FunctionWrapper(script);
+			var executable = new FunctionWrappedScriptExecutable(functionWrapper);
+			await _pyExecutor.Execute(executable, middleware, token);
+		}
+		catch (TaskCanceledException)
+		{
+			// Expected on cancellation
+		}
 	}
 
 	public void UpdateTitle(string title)
