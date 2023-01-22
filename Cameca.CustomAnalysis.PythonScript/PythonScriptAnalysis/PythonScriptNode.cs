@@ -73,7 +73,14 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 		{
 			var functionWrapper = new FunctionWrapper(script);
 			var executable = new FunctionWrappedScriptExecutable(functionWrapper);
-			await _pyExecutor.Execute(executable, middleware, token);
+			// This isn't the right solution as the exception handing should be isolated to the VM
+			// as the output is only guaranteed to be redirected there.
+			// Ideal solution would be to have StdStream redirect register a sys.excepthook to write out
+			// any exceptions, then catch and suppress PythonException in the VM
+			// Unfortunately I can not get sys.excepthook to trigger. So this is my solution for now
+			// TODO: Improve exception handing. Either resolve sys.excepthook issue or provide custom hooks for middleware
+			var wrapper = new HandlePythonExceptionWrapper<FunctionWrappedScriptExecutable>(executable);
+			await _pyExecutor.Execute(wrapper, middleware, token);
 		}
 		catch (TaskCanceledException)
 		{
