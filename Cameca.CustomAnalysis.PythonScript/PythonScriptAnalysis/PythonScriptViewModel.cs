@@ -96,7 +96,24 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 
 	private void OnScriptEditorKeyDown(KeyEventArgs? args)
 	{
-		
+		if (args is null) return;
+
+		if (args.Key == Key.Enter
+		    && args.KeyboardDevice.Modifiers == ModifierKeys.Control
+		    && !args.IsRepeat
+		    && _runScriptCommand.CanExecute(null))
+		{
+			_runScriptCommand.Execute(null);
+			args.Handled = true;
+		}
+
+		if (args.Key == Key.Pause
+		    && !args.IsRepeat
+		    && _cancelScriptCommand.CanExecute(null))
+		{
+			_cancelScriptCommand.Execute(null);
+			args.Handled = true;
+		}
 	}
 
 	private Task OnGetAvailableSections(CancellationToken token)
