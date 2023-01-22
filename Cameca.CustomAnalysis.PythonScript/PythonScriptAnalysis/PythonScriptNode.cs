@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Cameca.CustomAnalysis.Interface;
@@ -29,6 +32,31 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	{
 		_pyExecutor = pyExecutor;
 		_nodeInfoProvider = nodeInfoProvider;
+	}
+
+	protected override void OnCreated(NodeCreatedEventArgs eventArgs)
+	{
+		if (eventArgs is { Trigger: EventTrigger.Load, Data: { } loadData })
+		{
+			try
+			{
+				var loadState = JsonSerializer.Deserialize<PythonScriptSaveState>(loadData);
+				UpdateTitle(loadState?.Title ?? DisplayInfo.Title);
+				ScriptText = loadState?.ScriptText ?? "";
+			}
+			catch (JsonException) { }
+			catch (NotSupportedException) { }
+		}
+	}
+
+	protected override byte[]? GetSaveContent()
+	{
+		var serializedState = JsonSerializer.Serialize(new PythonScriptSaveState
+		{
+			Title = _nodeInfo?.Title ?? "",
+			ScriptText = ScriptText,
+		});
+		return Encoding.UTF8.GetBytes(serializedState);
 	}
 
 	protected override void OnAdded(NodeAddedEventArgs eventArgs)
