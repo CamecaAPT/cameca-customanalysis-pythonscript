@@ -14,11 +14,14 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 {
 	public const string UniqueId = "Cameca.CustomAnalysis.PythonScript.PythonScriptViewModel";
 
+	private readonly IViewModelCaptionProvider _viewModelCaptionProvider;
+	private IViewModelCaption? _viewModelCaption;
+
 	private string _title = "";
 	public string Title
 	{
 		get => _title;
-		set => SetProperty(ref _title, value);
+		set => SetProperty(ref _title, value, OnTitleChanged);
 	}
 
 	private string _scriptText = "";
@@ -51,9 +54,10 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 
 	public ObservableCollection<OutputTabViewModel> OutputTabs { get; } = new();
 
-	public PythonScriptViewModel(IAnalysisViewModelBaseServices services)
+	public PythonScriptViewModel(IViewModelCaptionProvider viewModelCaptionProvider, IAnalysisViewModelBaseServices services)
 		: base(services)
 	{
+		_viewModelCaptionProvider = viewModelCaptionProvider;
 		_runScriptCommand = new AsyncRelayCommand(OnRunScript);
 		_cancelScriptCommand = new RelayCommand(_runScriptCommand.Cancel, () => _runScriptCommand.CanBeCanceled);
 		_runScriptCommand.CanExecuteChanged += (sender, args) => _cancelScriptCommand.NotifyCanExecuteChanged();
@@ -63,7 +67,23 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 
 	protected override void OnAdded(ViewModelAddedEventArgs eventArgs)
 	{
+		_viewModelCaption = _viewModelCaptionProvider.Resolve(InstanceId);
+
+		Title = Node?.Title ?? PythonScriptNode.DisplayInfo.Title;
 		ScriptText = Node?.ScriptText ?? "";
+	}
+
+	private void OnTitleChanged()
+	{
+		if (_viewModelCaption is null)
+		{
+			return;
+		}
+
+		_viewModelCaption.Caption = string.IsNullOrWhiteSpace(Title)
+			? PythonScriptNode.DisplayInfo.Title
+			: Title.Trim();
+		Node?.UpdateTitle(_viewModelCaption.Caption);
 	}
 
 	private void OnScriptTextChanged()
