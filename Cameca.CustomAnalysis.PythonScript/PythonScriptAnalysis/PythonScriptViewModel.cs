@@ -7,11 +7,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Cameca.CustomAnalysis.Interface;
+using Cameca.CustomAnalysis.PythonScript.Python;
 using Cameca.CustomAnalysis.PythonScript.Python.DelegatedExecute;
 using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Adapters;
+using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Output.Matplotlib;
 using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Output.StdStream;
 using Cameca.CustomAnalysis.Utilities;
 using CommunityToolkit.Mvvm.Input;
+using Python.Runtime;
 
 namespace Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
 
@@ -19,6 +22,7 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 {
 	public const string UniqueId = "Cameca.CustomAnalysis.PythonScript.PythonScriptViewModel";
 
+	private readonly PythonManager _pythonManager;
 	private readonly StdStreamOutputViewModel _outputViewModel;
 	private readonly IViewModelCaptionProvider _viewModelCaptionProvider;
 	private IViewModelCaption? _viewModelCaption;
@@ -60,9 +64,10 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 
 	public ObservableCollection<OutputTabViewModel> OutputTabs { get; } = new();
 
-	public PythonScriptViewModel(StdStreamOutputViewModel outputViewModel, IViewModelCaptionProvider viewModelCaptionProvider, IAnalysisViewModelBaseServices services)
+	public PythonScriptViewModel(PythonManager pythonManager, StdStreamOutputViewModel outputViewModel, IViewModelCaptionProvider viewModelCaptionProvider, IAnalysisViewModelBaseServices services)
 		: base(services)
 	{
+		_pythonManager = pythonManager;
 		_outputViewModel = outputViewModel;
 		_viewModelCaptionProvider = viewModelCaptionProvider;
 		_runScriptCommand = new AsyncRelayCommand(OnRunScript);
@@ -194,6 +199,7 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 		var middleware = new IPyExecutorMiddleware[]
 		{
 			new StdstreamRedirect(DispatchAddOutputItemPyCallback),
+			new MatplotlibRenderer(this, _pythonManager),
 		};
 		await Node.RunScript(
 			ScriptText,
