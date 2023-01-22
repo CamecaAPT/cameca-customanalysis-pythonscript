@@ -6,6 +6,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:pythonScriptAnalysis="clr-namespace:Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis"
+             xmlns:stdStream="clr-namespace:Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Output.StdStream"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type={x:Type pythonScriptAnalysis:PythonScriptViewModel }}"
              d:DesignHeight="450" d:DesignWidth="800">
@@ -101,6 +102,11 @@
                     <Setter Property="Header" Value="{Binding Header}" />
                 </Style>
             </TabControl.ItemContainerStyle>
+            <TabControl.Resources>
+                <DataTemplate DataType="{x:Type stdStream:StdStreamOutputViewModel}">
+                    <stdStream:StdStreamOutputView DataContext="{Binding}" />
+                </DataTemplate>
+            </TabControl.Resources>
         </TabControl>
     </Grid>
 </UserControl>

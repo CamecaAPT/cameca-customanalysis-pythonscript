@@ -107,4 +107,13 @@
 	<data name="InvalidPythonIndentationExceptionMessage" xml:space="preserve">
 		<value>"{0}" is not a valid Python indentation</value>
 	</data>
+	<data name="StdStreamOutputHeader" xml:space="preserve">
+		<value>Output</value>
+	</data>
+	<data name="StdStreamOutputClearAllLabel" xml:space="preserve">
+		<value>Clear All</value>
+	</data>
+	<data name="StdStreamOutputAutoClearLabel" xml:space="preserve">
+		<value>Auto Clear</value>
+	</data>
 </root>

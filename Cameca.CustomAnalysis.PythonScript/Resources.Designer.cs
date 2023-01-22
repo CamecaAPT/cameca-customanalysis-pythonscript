@@ -86,5 +86,32 @@ namespace Cameca.CustomAnalysis.PythonScript {
                 return ResourceManager.GetString("PythonScriptDisplayName", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Auto Clear.
+        /// </summary>
+        public static string StdStreamOutputAutoClearLabel {
+            get {
+                return ResourceManager.GetString("StdStreamOutputAutoClearLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Clear All.
+        /// </summary>
+        public static string StdStreamOutputClearAllLabel {
+            get {
+                return ResourceManager.GetString("StdStreamOutputClearAllLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Output.
+        /// </summary>
+        public static string StdStreamOutputHeader {
+            get {
+                return ResourceManager.GetString("StdStreamOutputHeader", resourceCulture);
+            }
+        }
     }
 }

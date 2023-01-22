@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Cameca.CustomAnalysis.Interface;
 using Cameca.CustomAnalysis.PythonScript.Python.DelegatedExecute;
+using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Output.StdStream;
 using Cameca.CustomAnalysis.Utilities;
 using CommunityToolkit.Mvvm.Input;
 
@@ -14,6 +15,7 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 {
 	public const string UniqueId = "Cameca.CustomAnalysis.PythonScript.PythonScriptViewModel";
 
+	private readonly StdStreamOutputViewModel _outputViewModel;
 	private readonly IViewModelCaptionProvider _viewModelCaptionProvider;
 	private IViewModelCaption? _viewModelCaption;
 
@@ -54,15 +56,19 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 
 	public ObservableCollection<OutputTabViewModel> OutputTabs { get; } = new();
 
-	public PythonScriptViewModel(IViewModelCaptionProvider viewModelCaptionProvider, IAnalysisViewModelBaseServices services)
+	public PythonScriptViewModel(StdStreamOutputViewModel outputViewModel, IViewModelCaptionProvider viewModelCaptionProvider, IAnalysisViewModelBaseServices services)
 		: base(services)
 	{
+		_outputViewModel = outputViewModel;
 		_viewModelCaptionProvider = viewModelCaptionProvider;
 		_runScriptCommand = new AsyncRelayCommand(OnRunScript);
 		_cancelScriptCommand = new RelayCommand(_runScriptCommand.Cancel, () => _runScriptCommand.CanBeCanceled);
 		_runScriptCommand.CanExecuteChanged += (sender, args) => _cancelScriptCommand.NotifyCanExecuteChanged();
 		_getAvailableSectionsCommand = new AsyncRelayCommand(OnGetAvailableSections);
 		_scriptEditorKeyDownCommand = new RelayCommand<KeyEventArgs>(OnScriptEditorKeyDown);
+
+		OutputTabs.Add(_outputViewModel);
+		SelectedOutputTab = _outputViewModel;
 	}
 
 	protected override void OnAdded(ViewModelAddedEventArgs eventArgs)
@@ -127,7 +133,16 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 		{
 			return;
 		}
-		var middleware = Enumerable.Empty<IPyExecutorMiddleware>();
+		_outputViewModel.StartNewRunCommand.Execute(null);
+		var middleware = new IPyExecutorMiddleware[]
+		{
+			new StdstreamRedirect(DispatchAddOutputItemPyCallback),
+		};
 		await Node.RunScript(ScriptText, middleware, token);
+	}
+
+	private void DispatchAddOutputItemPyCallback(object? value)
+	{
+		_outputViewModel.DispatchAddOutputItem(value?.ToString() ?? "");
 	}
 }
