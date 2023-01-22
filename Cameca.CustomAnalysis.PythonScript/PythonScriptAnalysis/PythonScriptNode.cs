@@ -17,8 +17,10 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	private readonly PyExecutor _pyExecutor;
 
 	public static INodeDisplayInfo DisplayInfo { get; } = new NodeDisplayInfo(Resources.PythonScriptDisplayName, ImagesContainer.Python16x16);
+	
+	public string ScriptText { get; set; } = "";
 
-    public PythonScriptNode(PyExecutor pyExecutor, IStandardAnalysisNodeBaseServices services)
+	public PythonScriptNode(PyExecutor pyExecutor, IStandardAnalysisNodeBaseServices services)
         : base(services)
     {
 	    _pyExecutor = pyExecutor;

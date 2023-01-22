@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Cameca.CustomAnalysis.Interface;
 using Cameca.CustomAnalysis.PythonScript.Python.DelegatedExecute;
 using Cameca.CustomAnalysis.Utilities;
 using CommunityToolkit.Mvvm.Input;
@@ -24,7 +25,7 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 	public string ScriptText
 	{
 		get => _scriptText;
-		set => SetProperty(ref _scriptText, value);
+		set => SetProperty(ref _scriptText, value, OnScriptTextChanged);
 	}
 
 	private readonly AsyncRelayCommand _runScriptCommand;
@@ -58,6 +59,19 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 		_runScriptCommand.CanExecuteChanged += (sender, args) => _cancelScriptCommand.NotifyCanExecuteChanged();
 		_getAvailableSectionsCommand = new AsyncRelayCommand(OnGetAvailableSections);
 		_scriptEditorKeyDownCommand = new RelayCommand<KeyEventArgs>(OnScriptEditorKeyDown);
+	}
+
+	protected override void OnAdded(ViewModelAddedEventArgs eventArgs)
+	{
+		ScriptText = Node?.ScriptText ?? "";
+	}
+
+	private void OnScriptTextChanged()
+	{
+		if (Node is not null)
+		{
+			Node.ScriptText = ScriptText;
+		}
 	}
 
 	private void OnScriptEditorKeyDown(KeyEventArgs? args)
