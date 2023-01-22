@@ -19,7 +19,7 @@
 		</dependencies>
 	</metadata>
 	<files>
-		<file src="..\icon.png" target="icon.png" />
+		<file src="..\Cameca.png" target="Cameca.png" />
 		<file src="..\LICENSE" target="LICENSE" />
 		<file src="..\README.md" target="README.md" />
 		<file src="$outDir$*" target="lib\$tfw$" />
