@@ -164,6 +164,8 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 		{
 			// Expected on cancellation
 		}
+
+		DataStateIsValid = true;
 	}
 
 	public void UpdateTitle(string title)
