@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -17,11 +18,13 @@ using Cameca.CustomAnalysis.Utilities;
 namespace Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
 
 [DefaultView(PythonScriptViewModel.UniqueId, typeof(PythonScriptViewModel))]
+[NodeType(NodeType.DataFilter)]
 internal class PythonScriptNode : StandardAnalysisNodeBase
 {
 	public const string UniqueId = "Cameca.CustomAnalysis.PythonScript.PythonScriptNode";
 
 	private readonly PyExecutor _pyExecutor;
+	private readonly INodeDataFilterProvider _nodeDataFilterProvider;
 	private readonly INodeInfoProvider _nodeInfoProvider;
 	private readonly IIonDisplayInfoProvider _ionDisplayInfoProvider;
 	private readonly IMassSpectrumRangeManagerProvider _rangeManagerProvider;
@@ -36,6 +39,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 
 	public PythonScriptNode(
 		PyExecutor pyExecutor,
+		INodeDataFilterProvider nodeDataFilterProvider,
 		INodeInfoProvider nodeInfoProvider,
 		IIonDisplayInfoProvider ionDisplayInfoProvider,
 		IMassSpectrumRangeManagerProvider rangeManagerProvider,
@@ -44,6 +48,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
         : base(services)
 	{
 		_pyExecutor = pyExecutor;
+		_nodeDataFilterProvider = nodeDataFilterProvider;
 		_nodeInfoProvider = nodeInfoProvider;
 		_ionDisplayInfoProvider = ionDisplayInfoProvider;
 		_rangeManagerProvider = rangeManagerProvider;
@@ -80,6 +85,32 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	protected override void OnAdded(NodeAddedEventArgs eventArgs)
 	{
 		_nodeInfo = _nodeInfoProvider?.Resolve(InstanceId);
+		if (_nodeDataFilterProvider.Resolve(InstanceId) is { } nodeDataFilter)
+		{
+			nodeDataFilter.FilterDelegate = FilterDelegate;
+		}
+	}
+
+#pragma warning disable CS1998
+	private async IAsyncEnumerable<ReadOnlyMemory<ulong>> FilterDelegate(IIonData ownerIonData, IProgress<double>? progress, [EnumeratorCancellation] CancellationToken token)
+#pragma warning restore CS1998
+	{
+		foreach (var chunkIndices in FilterDelegateSync(ownerIonData, progress, token))
+		{
+			yield return chunkIndices;
+		}
+	}
+
+	private IEnumerable<ReadOnlyMemory<ulong>> FilterDelegateSync(IIonData ownerIonData, IProgress<double>? progress, CancellationToken token)
+	{
+		yield return Array.Empty<ulong>();
+	}
+
+	protected async Task<IIonData?> GetOwnerIonData(IProgress<double>? progress = null, CancellationToken cancellationToken = default)
+	{
+		return Services.IonDataProvider.Resolve(InstanceId) is { OwnerNodeId: { } ownerNodeId }
+			? await Services.IonDataProvider.GetIonData(ownerNodeId, progress, cancellationToken)
+			: null;
 	}
 
 	public static readonly string[] DefaultSections = new[]
@@ -103,7 +134,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	public async Task<IEnumerable<string>> GetAvailableSections()
 	{
 		IEnumerable<string> sections = Enumerable.Empty<string>();
-		if (await GetIonData() is { } ionData)
+		if (await GetOwnerIonData() is { } ionData)
 		{
 			sections = sections.Concat(ionData.Sections.Keys);
 		}
@@ -125,7 +156,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	{
 		try
 		{
-			if (await GetIonData(cancellationToken: token) is not { } ionData)
+			if (await GetOwnerIonData(cancellationToken: token) is not { } ionData)
 			{
 				return;
 			}
