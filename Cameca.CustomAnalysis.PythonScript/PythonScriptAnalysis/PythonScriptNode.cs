@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -31,11 +30,26 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	private readonly IReconstructionSectionsProvider _reconstructionSectionsProvider;
 	private INodeInfo? _nodeInfo;
 
+	private readonly IReadOnlyList<IPyExecutorMiddleware> requiredMiddleware = new List<IPyExecutorMiddleware>
+	{
+		new PythonScriptNodeRequiredPreprocessing(),
+	};
+
 	public static INodeDisplayInfo DisplayInfo { get; } = new NodeDisplayInfo(Resources.PythonScriptDisplayName, ImagesContainer.Python16x16);
 
 	public string Title => _nodeInfo?.Title ?? DisplayInfo.Title;
 
-	public string ScriptText { get; set; } = "";
+	private string _scriptText = "";
+
+	public string ScriptText
+	{
+		get => _scriptText;
+		set
+		{
+			_scriptText = value;
+			DataStateIsValid = false;
+		}
+	}
 
 	public PythonScriptNode(
 		PyExecutor pyExecutor,
@@ -91,19 +105,20 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 		}
 	}
 
-#pragma warning disable CS1998
 	private async IAsyncEnumerable<ReadOnlyMemory<ulong>> FilterDelegate(IIonData ownerIonData, IProgress<double>? progress, [EnumeratorCancellation] CancellationToken token)
-#pragma warning restore CS1998
 	{
-		foreach (var chunkIndices in FilterDelegateSync(ownerIonData, progress, token))
+		var captureMiddleware = new CaptureFilterIndices();
+		await RunScript(ScriptText, SelectedSection, new[]{ captureMiddleware }, token);
+		if (!captureMiddleware.HasResult)
+		{
+			yield return Array.Empty<ulong>();
+			yield break;
+		}
+
+		foreach (var chunkIndices in captureMiddleware.Value ?? Enumerable.Empty<ReadOnlyMemory<ulong>>())
 		{
 			yield return chunkIndices;
 		}
-	}
-
-	private IEnumerable<ReadOnlyMemory<ulong>> FilterDelegateSync(IIonData ownerIonData, IProgress<double>? progress, CancellationToken token)
-	{
-		yield return Array.Empty<ulong>();
 	}
 
 	protected async Task<IIonData?> GetOwnerIonData(IProgress<double>? progress = null, CancellationToken cancellationToken = default)
@@ -189,7 +204,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 			// Unfortunately I can not get sys.excepthook to trigger. So this is my solution for now
 			// TODO: Improve exception handing. Either resolve sys.excepthook issue or provide custom hooks for middleware
 			var wrapper = new HandlePythonExceptionWrapper<FunctionWrappedScriptExecutable>(executable);
-			await _pyExecutor.Execute(wrapper, middleware, token);
+			await _pyExecutor.Execute(wrapper, requiredMiddleware.Concat(middleware), token);
 		}
 		catch (TaskCanceledException)
 		{
