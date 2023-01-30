@@ -22,6 +22,6 @@
 		<file src="..\Cameca.png" target="Cameca.png" />
 		<file src="..\LICENSE" target="LICENSE" />
 		<file src="..\README.md" target="README.md" />
-		<file src="$outDir$*" target="lib\$tfw$" />
+		<file src="$outDir$**\*" target="lib\$tfw$" />
 	</files>
 </package>
