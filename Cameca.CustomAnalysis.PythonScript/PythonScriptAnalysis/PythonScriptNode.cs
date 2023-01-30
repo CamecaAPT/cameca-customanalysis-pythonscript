@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -17,25 +17,43 @@ using Cameca.CustomAnalysis.Utilities;
 namespace Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
 
 [DefaultView(PythonScriptViewModel.UniqueId, typeof(PythonScriptViewModel))]
+[NodeType(NodeType.DataFilter)]
 internal class PythonScriptNode : StandardAnalysisNodeBase
 {
 	public const string UniqueId = "Cameca.CustomAnalysis.PythonScript.PythonScriptNode";
 
 	private readonly PyExecutor _pyExecutor;
+	private readonly INodeDataFilterProvider _nodeDataFilterProvider;
 	private readonly INodeInfoProvider _nodeInfoProvider;
 	private readonly IIonDisplayInfoProvider _ionDisplayInfoProvider;
 	private readonly IMassSpectrumRangeManagerProvider _rangeManagerProvider;
 	private readonly IReconstructionSectionsProvider _reconstructionSectionsProvider;
 	private INodeInfo? _nodeInfo;
 
+	private readonly IReadOnlyList<IPyExecutorMiddleware> requiredMiddleware = new List<IPyExecutorMiddleware>
+	{
+		new PythonScriptNodeRequiredPreprocessing(),
+	};
+
 	public static INodeDisplayInfo DisplayInfo { get; } = new NodeDisplayInfo(Resources.PythonScriptDisplayName, ImagesContainer.Python16x16);
 
 	public string Title => _nodeInfo?.Title ?? DisplayInfo.Title;
 
-	public string ScriptText { get; set; } = "";
+	private string _scriptText = "";
+
+	public string ScriptText
+	{
+		get => _scriptText;
+		set
+		{
+			_scriptText = value;
+			DataStateIsValid = false;
+		}
+	}
 
 	public PythonScriptNode(
 		PyExecutor pyExecutor,
+		INodeDataFilterProvider nodeDataFilterProvider,
 		INodeInfoProvider nodeInfoProvider,
 		IIonDisplayInfoProvider ionDisplayInfoProvider,
 		IMassSpectrumRangeManagerProvider rangeManagerProvider,
@@ -44,6 +62,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
         : base(services)
 	{
 		_pyExecutor = pyExecutor;
+		_nodeDataFilterProvider = nodeDataFilterProvider;
 		_nodeInfoProvider = nodeInfoProvider;
 		_ionDisplayInfoProvider = ionDisplayInfoProvider;
 		_rangeManagerProvider = rangeManagerProvider;
@@ -80,6 +99,33 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	protected override void OnAdded(NodeAddedEventArgs eventArgs)
 	{
 		_nodeInfo = _nodeInfoProvider?.Resolve(InstanceId);
+		if (_nodeDataFilterProvider.Resolve(InstanceId) is { } nodeDataFilter)
+		{
+			nodeDataFilter.FilterDelegate = FilterDelegate;
+		}
+	}
+
+	private async IAsyncEnumerable<ReadOnlyMemory<ulong>> FilterDelegate(IIonData ownerIonData, IProgress<double>? progress, [EnumeratorCancellation] CancellationToken token)
+	{
+		var captureMiddleware = new CaptureFilterIndices();
+		await RunScript(ScriptText, SelectedSection, new[]{ captureMiddleware }, token);
+		if (!captureMiddleware.HasResult)
+		{
+			yield return Array.Empty<ulong>();
+			yield break;
+		}
+
+		foreach (var chunkIndices in captureMiddleware.Value ?? Enumerable.Empty<ReadOnlyMemory<ulong>>())
+		{
+			yield return chunkIndices;
+		}
+	}
+
+	protected async Task<IIonData?> GetOwnerIonData(IProgress<double>? progress = null, CancellationToken cancellationToken = default)
+	{
+		return Services.IonDataProvider.Resolve(InstanceId) is { OwnerNodeId: { } ownerNodeId }
+			? await Services.IonDataProvider.GetIonData(ownerNodeId, progress, cancellationToken)
+			: null;
 	}
 
 	public static readonly string[] DefaultSections = new[]
@@ -103,7 +149,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	public async Task<IEnumerable<string>> GetAvailableSections()
 	{
 		IEnumerable<string> sections = Enumerable.Empty<string>();
-		if (await GetIonData() is { } ionData)
+		if (await GetOwnerIonData() is { } ionData)
 		{
 			sections = sections.Concat(ionData.Sections.Keys);
 		}
@@ -125,7 +171,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	{
 		try
 		{
-			if (await GetIonData(cancellationToken: token) is not { } ionData)
+			if (await GetOwnerIonData(cancellationToken: token) is not { } ionData)
 			{
 				return;
 			}
@@ -158,12 +204,14 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 			// Unfortunately I can not get sys.excepthook to trigger. So this is my solution for now
 			// TODO: Improve exception handing. Either resolve sys.excepthook issue or provide custom hooks for middleware
 			var wrapper = new HandlePythonExceptionWrapper<FunctionWrappedScriptExecutable>(executable);
-			await _pyExecutor.Execute(wrapper, middleware, token);
+			await _pyExecutor.Execute(wrapper, requiredMiddleware.Concat(middleware), token);
 		}
 		catch (TaskCanceledException)
 		{
 			// Expected on cancellation
 		}
+
+		DataStateIsValid = true;
 	}
 
 	public void UpdateTitle(string title)
