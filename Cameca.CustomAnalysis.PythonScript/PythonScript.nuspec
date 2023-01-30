@@ -22,6 +22,11 @@
 		<file src="..\Cameca.png" target="Cameca.png" />
 		<file src="..\LICENSE" target="LICENSE" />
 		<file src="..\README.md" target="README.md" />
-		<file src="$outDir$**\*" target="lib\$tfw$" />
+		<file src="$outDir$*.dll" target="lib\$tfw$" />
+		<file src="$outDir$*.pdb" target="lib\$tfw$" />
+		<file src="$outDir$*.json" target="content" />
+		<file src="$outDir$*.py" target="content" />
+		<file src="$outDir$pythonnet\**.*" target="content\pythonnet" />
+		<file src="$outDir$PythonPackages\**.*" target="content\PythonPackages" />
 	</files>
 </package>
