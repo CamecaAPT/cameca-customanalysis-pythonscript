@@ -8,6 +8,7 @@
              xmlns:pythonScriptAnalysis="clr-namespace:Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis"
              xmlns:stdStream="clr-namespace:Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Output.StdStream"
              xmlns:matplotlib="clr-namespace:Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Output.Matplotlib"
+             xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type={x:Type pythonScriptAnalysis:PythonScriptViewModel }}"
              d:DesignHeight="450" d:DesignWidth="800">
@@ -67,19 +68,20 @@
                         </ToolBar>
                     </ToolBarTray>
 
-                    <TextBox x:Name="ScriptEditorTextBox"
-                         AcceptsReturn="True"
-                         AcceptsTab="True"
-                         FontFamily="Consolas"
-                         Text="{Binding ScriptText, UpdateSourceTrigger=PropertyChanged}"
-                         VerticalScrollBarVisibility="Auto">
+                    <avalonedit:TextEditor x:Name="ScriptEditorTextBox"
+                                           FontFamily="Consolas"
+                                           IsTabStop="True"
+                                           ShowLineNumbers="True"
+                                           SyntaxHighlighting="Python"
+                                           Document="{Binding ScriptTextDocument}"
+                                           VerticalScrollBarVisibility="Auto">
                         <b:Interaction.Triggers>
                             <b:EventTrigger EventName="KeyDown">
                                 <b:InvokeCommandAction Command="{Binding ScriptEditorKeyDownCommand}"
                                                    PassEventArgsToCommand="True" />
                             </b:EventTrigger>
                         </b:Interaction.Triggers>
-                    </TextBox>
+                    </avalonedit:TextEditor>
                 </DockPanel>
             </Grid>
         </Grid>

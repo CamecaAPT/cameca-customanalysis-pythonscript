@@ -14,6 +14,7 @@ using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Output.Matplotlib;
 using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Output.StdStream;
 using Cameca.CustomAnalysis.Utilities;
 using CommunityToolkit.Mvvm.Input;
+using ICSharpCode.AvalonEdit.Document;
 using Python.Runtime;
 
 namespace Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
@@ -34,12 +35,7 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 		set => SetProperty(ref _title, value, OnTitleChanged);
 	}
 
-	private string _scriptText = "";
-	public string ScriptText
-	{
-		get => _scriptText;
-		set => SetProperty(ref _scriptText, value, OnScriptTextChanged);
-	}
+	public IDocument ScriptTextDocument { get; } = new TextDocument();
 
 	private readonly AsyncRelayCommand _runScriptCommand;
 	public ICommand RunScriptCommand => _runScriptCommand;
@@ -80,6 +76,7 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 
 		OutputTabs.Add(_outputViewModel);
 		SelectedOutputTab = _outputViewModel;
+		ScriptTextDocument.TextChanged += (object? sender, TextChangeEventArgs args) => OnScriptTextChanged();
 	}
 
 	private void MenuItemsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -115,7 +112,7 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 		_viewModelCaption = _viewModelCaptionProvider.Resolve(InstanceId);
 
 		Title = Node?.Title ?? PythonScriptNode.DisplayInfo.Title;
-		ScriptText = Node?.ScriptText ?? "";
+		ScriptTextDocument.Text = Node?.ScriptText ?? "";
 
 		var selectedSection = new HashSet<string>(Node?.SelectedSection ?? Enumerable.Empty<string>());
 		foreach (var section in Node?.GetCurrentSections() ?? PythonScriptNode.DefaultSections)
@@ -145,7 +142,7 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 	{
 		if (Node is not null)
 		{
-			Node.ScriptText = ScriptText;
+			Node.ScriptText = ScriptTextDocument.Text;
 		}
 	}
 
@@ -204,7 +201,7 @@ internal class PythonScriptViewModel : AnalysisViewModelBase<PythonScriptNode>
 		try
 		{
 			await Node.RunScript(
-				ScriptText,
+				ScriptTextDocument.Text,
 				MenuItems.Where(x => x.IsChecked).Select(x => x.Header).ToArray(),
 				middleware,
 				token);
