@@ -1,6 +1,7 @@
 ﻿using Cameca.CustomAnalysis.Interface;
 using Cameca.CustomAnalysis.PythonScript.Python;
 using Cameca.CustomAnalysis.PythonScript.Python.Distributions.Anaconda;
+using Cameca.CustomAnalysis.PythonScript.PythonExampleAnalysis;
 using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
 using Cameca.CustomAnalysis.Utilities;
 using Microsoft.Extensions.Logging;
@@ -27,9 +28,13 @@ public class PythonScriptModule : IModule
         containerRegistry.RegisterInstance(PythonScriptNode.DisplayInfo, PythonScriptNode.UniqueId);
         containerRegistry.Register<IAnalysisMenuFactory, PythonScriptNodeMenuFactory>(nameof(PythonScriptNodeMenuFactory));
         containerRegistry.Register<object, PythonScriptViewModel>(PythonScriptViewModel.UniqueId);
-    }
 
-    public void OnInitialized(IContainerProvider containerProvider)
+		containerRegistry.Register<object, ExampleNode>(ExampleNode.UniqueId);
+		containerRegistry.RegisterInstance(ExampleNode.DisplayInfo, ExampleNode.UniqueId);
+		containerRegistry.Register<IAnalysisMenuFactory, ExampleNodeMenuFactory>(nameof(ExampleNodeMenuFactory));
+	}
+
+	public void OnInitialized(IContainerProvider containerProvider)
     {
         var extensionRegistry = containerProvider.Resolve<IExtensionRegistry>();
 

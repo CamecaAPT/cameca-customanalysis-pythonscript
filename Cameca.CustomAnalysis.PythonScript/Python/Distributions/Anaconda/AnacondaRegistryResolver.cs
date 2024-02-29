@@ -37,7 +37,7 @@ internal class AnacondaRegistryResolver
 			if (version > bestVersion)
 			{
 				bestVersion = version;
-				selectedInstallKeyPath = string.Join(Path.PathSeparator, ContinuumAnalyticsPath, subkeyName, InstallPathKey);
+				selectedInstallKeyPath = string.Join(Path.DirectorySeparatorChar, ContinuumAnalyticsPath, subkeyName, InstallPathKey);
 			}
 		}
 

@@ -40,7 +40,7 @@ internal class AnacondaDistribution : IPyDistribution
 
 		try
 		{
-			return InitializeAnacondaImpl(condaPath);
+			return InitializeAnacondaImpl(condaPath, "pnnl_extension");
 		}
 		catch (Exception ex)
 		{
@@ -49,8 +49,38 @@ internal class AnacondaDistribution : IPyDistribution
 		}
 	}
 
-	private bool InitializeAnacondaImpl(string condaPath)
+	/// <summary>
+	/// Initialized the Python engine from the Anaconda distribution and environment.
+	/// </summary>
+	/// <remarks>
+	/// If an optional environment name is provided, use that environment. Note that any Anaconda specific functionality such as activation scripts will not be supported.
+	/// If the environment doesn't exist, optionally fallback to the base environment
+	/// </remarks>
+	/// <param name="condaPath"></param>
+	/// <param name="env"></param>
+	/// <param name="fallbackToBase"></param>
+	/// <returns></returns>
+	private bool InitializeAnacondaImpl(string condaPath, string? env = null, bool fallbackToBase = false)
 	{
+		// Try to resolve the environment. If the correct envs folder doesn't exist, log a warning and fallback to base
+		if (env is not null)
+		{
+			var envPath = Path.Join(condaPath, "envs", env);
+			if (Directory.Exists(envPath))
+			{
+				condaPath = envPath;
+			}
+			else if (fallbackToBase || string.Equals(env, "base", StringComparison.Ordinal))  // Default env "base" isn't in envs directory, but assume if name is "base" we want implicit fallbackToBase
+			{
+				_logger.LogWarning("Could not resolve Anaconda environment '{Environment}' at '{EnvironmentPath}'. Falling back to base environment.", env, envPath);
+			}
+			else
+			{
+				_logger.LogWarning("Could not resolve Anaconda environment '{Environment}' at '{EnvironmentPath}'. Fallbackto base environment is not enabled.", env, envPath);
+				return false;
+			}
+		}
+
 		// Locate and set Python DLL using the highest version python.dll found in the anaconda directory
 		if (PyPathTools.ResolvePythonDll(condaPath) is not { } dllPath)
 		{

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -13,6 +14,8 @@ using Cameca.CustomAnalysis.PythonScript.Python.DelegatedExecute.Executors;
 using Cameca.CustomAnalysis.PythonScript.Python.DelegatedExecute.Executors.FunctionWrappedFlatScript;
 using Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis.Adapters;
 using Cameca.CustomAnalysis.Utilities;
+using Prism.Ioc;
+using Python.Runtime;
 
 namespace Cameca.CustomAnalysis.PythonScript.PythonScriptAnalysis;
 
@@ -28,6 +31,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 	private readonly IIonDisplayInfoProvider _ionDisplayInfoProvider;
 	private readonly IMassSpectrumRangeManagerProvider _rangeManagerProvider;
 	private readonly IReconstructionSectionsProvider _reconstructionSectionsProvider;
+	private readonly IContainerProvider containerProvider;
 	private INodeInfo? _nodeInfo;
 
 	private readonly IReadOnlyList<IPyExecutorMiddleware> requiredMiddleware = new List<IPyExecutorMiddleware>
@@ -58,7 +62,8 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 		IIonDisplayInfoProvider ionDisplayInfoProvider,
 		IMassSpectrumRangeManagerProvider rangeManagerProvider,
 		IReconstructionSectionsProvider reconstructionSectionsProvider,
-		IStandardAnalysisNodeBaseServices services)
+		IStandardAnalysisNodeBaseServices services,
+		IContainerProvider containerProvider)
         : base(services)
 	{
 		_pyExecutor = pyExecutor;
@@ -67,6 +72,7 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 		_ionDisplayInfoProvider = ionDisplayInfoProvider;
 		_rangeManagerProvider = rangeManagerProvider;
 		_reconstructionSectionsProvider = reconstructionSectionsProvider;
+		this.containerProvider = containerProvider;
 	}
 
 	protected override void OnCreated(NodeCreatedEventArgs eventArgs)
@@ -190,11 +196,21 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 				sectionArray,
 				_ionDisplayInfoProvider.Resolve(InstanceId),
 				_rangeManagerProvider.Resolve(InstanceId));
+			var contextProvider = new APSuiteContextProvider(
+				ionData,
+				_ionDisplayInfoProvider.Resolve(InstanceId),
+				_rangeManagerProvider.Resolve(Services.NodeInfoProvider.GetRootNodeContainer(InstanceId).NodeId),
+				containerProvider.Resolve<INodePropertiesProvider>().Resolve(InstanceId),
+				containerProvider.Resolve<INodeElementDataSetProvider>().Resolve(InstanceId),
+				containerProvider.Resolve<IElementDataSetService>(),
+				containerProvider.Resolve<IReconstructionSectionsProvider>().Resolve(InstanceId),
+				containerProvider.Resolve<IExperimentInfoProvider>().Resolve(InstanceId));
 			var functionWrapper = new FunctionWrapper(
 				script,
 				positionalArguments: new[]
 				{
 					new ParameterDefinition("aps", apsDataProvider),
+					new ParameterDefinition("context", contextProvider),
 				});
 			var executable = new FunctionWrappedScriptExecutable(functionWrapper);
 			// This isn't the right solution as the exception handing should be isolated to the VM
@@ -209,6 +225,12 @@ internal class PythonScriptNode : StandardAnalysisNodeBase
 		catch (TaskCanceledException)
 		{
 			// Expected on cancellation
+		}
+		catch (PythonException)
+		{
+			// Handled internally for diaplay, but re-thrown to avoid treating as "successful" for post-processing
+			// Capture here again and suppress, and exception details are reported to stderr
+			// Potentially log in the future
 		}
 
 		DataStateIsValid = true;
